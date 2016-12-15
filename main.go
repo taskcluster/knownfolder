@@ -214,7 +214,8 @@ func main() {
 	}
 }
 
-func SHGetKnownFolderPath(rfid *syscall.GUID, dwFlags uint32, hToken syscall.Handle, pszPath *uintptr) (retval error) {
+// https://msdn.microsoft.com/en-us/library/windows/desktop/bb762188(v=vs.85).aspx
+func SHGetKnownFolderPath(rfid *syscall.GUID, dwFlags uint32, hToken syscall.Handle, pszPath *uintptr) (err error) {
 	r0, _, _ := procSHGetKnownFolderPath.Call(
 		uintptr(unsafe.Pointer(rfid)),
 		uintptr(dwFlags),
@@ -222,32 +223,41 @@ func SHGetKnownFolderPath(rfid *syscall.GUID, dwFlags uint32, hToken syscall.Han
 		uintptr(unsafe.Pointer(pszPath)),
 	)
 	if r0 != 0 {
-		retval = syscall.Errno(r0)
+		err = syscall.Errno(r0)
 	}
 	return
 }
 
-func CoTaskMemFree(pv uintptr) {
-	procCoTaskMemFree.Call(uintptr(pv))
+// https://msdn.microsoft.com/en-us/library/windows/desktop/ms680722(v=vs.85).aspx
+func CoTaskMemFree(pv uintptr) (err error) {
+	r0, _, _ := procCoTaskMemFree.Call(uintptr(pv))
+	if r0 != 0 {
+		err = syscall.Errno(r0)
+	}
 	return
 }
 
-func GetFolder(folder *syscall.GUID) (string, error) {
+func GetFolder(folder *syscall.GUID) (value string, err error) {
 	var path uintptr
-	err := SHGetKnownFolderPath(folder, 0, 0, &path)
+	err = SHGetKnownFolderPath(folder, 0, 0, &path)
 	if err != nil {
-		return "", err
+		return
 	}
-	defer CoTaskMemFree(path)
-	value := syscall.UTF16ToString((*[1 << 16]uint16)(unsafe.Pointer(path))[:])
-	return value, nil
+	defer func() {
+		freeMemErr := CoTaskMemFree(path)
+		if freeMemErr != nil {
+			log.Fatalf("Could not free memory after system call")
+		}
+	}()
+	value = syscall.UTF16ToString((*[1 << 16]uint16)(unsafe.Pointer(path))[:])
+	return
 }
 
 func SetFolder(folder *syscall.GUID, value string) (err error) {
 	var s *uint16
 	s, err = syscall.UTF16PtrFromString(value)
 	if err != nil {
-		return err
+		return
 	}
 	return SHSetKnownFolderPath(folder, 0, 0, s)
 }
@@ -261,7 +271,7 @@ func ListFolders() (err error) {
 	for _, key := range keys {
 		fmt.Println(key)
 	}
-	return nil
+	return
 }
 
 // https://msdn.microsoft.com/en-us/library/windows/desktop/bb762249(v=vs.85).aspx
