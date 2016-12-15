@@ -165,9 +165,9 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
 
   Examples:
 
-    C:\> knownfolder set FOLDERID_RoamingAppData "D:\Users\Pete\AppData\Roaming"
+    C:\> knownfolder set RoamingAppData "D:\Users\Pete\AppData\Roaming"
     C:\> knownfolder list
-    C:\> knownfolder get FOLDERID_LocalAppData
+    C:\> knownfolder get LocalAppData
     C:\> knownfolder --help
     C:\> knownfolder --version
 `
