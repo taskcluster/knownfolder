@@ -65,7 +65,6 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
 C:\gopath\src\github.com\taskcluster\knownfolder>knownfolder --version
 knownfolders 1.0.0
 ```
-C:\gopath\src\github.com\taskcluster\knownfolder>
 
 ### Listing known folders
 
