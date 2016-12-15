@@ -215,7 +215,12 @@ func main() {
 }
 
 func SHGetKnownFolderPath(rfid *syscall.GUID, dwFlags uint32, hToken syscall.Handle, pszPath *uintptr) (retval error) {
-	r0, _, _ := syscall.Syscall6(procSHGetKnownFolderPath.Addr(), 4, uintptr(unsafe.Pointer(rfid)), uintptr(dwFlags), uintptr(hToken), uintptr(unsafe.Pointer(pszPath)), 0, 0)
+	r0, _, _ := procSHGetKnownFolderPath.Call(
+		uintptr(unsafe.Pointer(rfid)),
+		uintptr(dwFlags),
+		uintptr(hToken),
+		uintptr(unsafe.Pointer(pszPath)),
+	)
 	if r0 != 0 {
 		retval = syscall.Errno(r0)
 	}
@@ -223,7 +228,7 @@ func SHGetKnownFolderPath(rfid *syscall.GUID, dwFlags uint32, hToken syscall.Han
 }
 
 func CoTaskMemFree(pv uintptr) {
-	syscall.Syscall(procCoTaskMemFree.Addr(), 1, uintptr(pv), 0, 0)
+	procCoTaskMemFree.Call(uintptr(pv))
 	return
 }
 
