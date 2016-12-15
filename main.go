@@ -185,6 +185,16 @@ func main() {
 
 	switch {
 	case arguments["set"]:
+		folder := arguments["FOLDER"].(string)
+		if knownfolders[folder] == nil {
+			log.Fatalf("Unknown folder %q", folder)
+		}
+		location := arguments["LOCATION"].(string)
+		err := SetFolder(knownfolders[folder], location)
+		if err != nil {
+			log.Fatalf("Could not set folder location %v=%q\n%v", folder, location, err)
+		}
+		fmt.Printf("%v=%q", folder, location)
 	case arguments["get"]:
 		folder := arguments["FOLDER"].(string)
 		if knownfolders[folder] == nil {
@@ -196,6 +206,9 @@ func main() {
 		}
 		fmt.Println(value)
 	case arguments["list"]:
+		for i := range knownfolders {
+			fmt.Println(i)
+		}
 	}
 }
 
