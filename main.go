@@ -206,8 +206,9 @@ func main() {
 		}
 		fmt.Println(value)
 	case arguments["list"]:
-		for i := range knownfolders {
-			fmt.Println(i)
+		err := ListFolders()
+		if err != nil {
+			log.Fatalf("Could not list folders: %v", err)
 		}
 	}
 }
@@ -246,6 +247,9 @@ func SetFolder(folder *syscall.GUID, value string) (err error) {
 }
 
 func ListFolders() (err error) {
+	for i := range knownfolders {
+		fmt.Println(i)
+	}
 	return nil
 }
 
