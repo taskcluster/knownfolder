@@ -24,7 +24,7 @@ C:\Tasks\Stuff\AppData\Local
 ### Getting help
 
 ```
-C:\gopath\src\github.com\taskcluster\knownfolder>knownfolder --help
+C:\>knownfolder --help
 knownfolder
 
 knownfolder allows you to get and set known folder locations on Windows.
@@ -62,7 +62,7 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
 ### Querying version of knownfolder
 
 ```
-C:\gopath\src\github.com\taskcluster\knownfolder>knownfolder --version
+C:\>knownfolder --version
 knownfolders 1.0.0
 ```
 
