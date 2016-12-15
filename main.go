@@ -188,28 +188,28 @@ func main() {
 	case arguments["set"]:
 		folder := arguments["FOLDER"].(string)
 		if knownfolders[folder] == nil {
-			log.Fatalf("Unknown folder %q", folder)
+			log.Fatalf(`Unknown folder "%v"`, folder)
 		}
 		location := arguments["LOCATION"].(string)
 		err := SetFolder(knownfolders[folder], location)
 		if err != nil {
-			log.Fatalf("Could not set folder location %v=%q\n%v", folder, location, err)
+			log.Fatalf("Could not set folder location %v=%v\n%v", folder, location, err)
 		}
-		fmt.Printf("%v=%q", folder, location)
+		fmt.Printf("%v=%v", folder, location)
 	case arguments["get"]:
 		folder := arguments["FOLDER"].(string)
 		if knownfolders[folder] == nil {
-			log.Fatalf("Unknown folder %q", folder)
+			log.Fatalf(`Unknown folder "%v"`, folder)
 		}
 		value, err := GetFolder(knownfolders[folder])
 		if err != nil {
-			log.Fatalf("Could not retrieve folder %v: %v", folder, err)
+			log.Fatalf("Could not retrieve folder %v:\n%v", folder, err)
 		}
 		fmt.Println(value)
 	case arguments["list"]:
 		err := ListFolders()
 		if err != nil {
-			log.Fatalf("Could not list folders: %v", err)
+			log.Fatalf("Could not list folders:\n%v", err)
 		}
 	}
 }
