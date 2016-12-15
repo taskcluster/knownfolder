@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 	"syscall"
 	"unsafe"
 
@@ -247,8 +248,13 @@ func SetFolder(folder *syscall.GUID, value string) (err error) {
 }
 
 func ListFolders() (err error) {
-	for i := range knownfolders {
-		fmt.Println(i)
+	keys := make([]string, 0, len(knownfolders))
+	for key := range knownfolders {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		fmt.Println(key)
 	}
 	return nil
 }
