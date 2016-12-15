@@ -6,21 +6,6 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
 
 ## Example usage
 
-### Setting folder location
-
-```
-C:\>knownfolder set RoamingAppData "D:\Users\Pete\AppData\Roaming"
-RoamingAppData="D:\\Users\\Pete\\AppData\\Roaming"
-```
-
-### Retrieving folder location
-
-```
-C:\>knownfolder get LocalAppData
-C:\Tasks\Stuff\AppData\Local
-
-```
-
 ### Getting help
 
 ```
@@ -57,6 +42,21 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
     C:\> knownfolder get FOLDERID_LocalAppData
     C:\> knownfolder --help
     C:\> knownfolder --version
+```
+
+### Setting folder location
+
+```
+C:\>knownfolder set RoamingAppData "D:\Users\Pete\AppData\Roaming"
+RoamingAppData="D:\\Users\\Pete\\AppData\\Roaming"
+```
+
+### Retrieving folder location
+
+```
+C:\>knownfolder get LocalAppData
+C:\Tasks\Stuff\AppData\Local
+
 ```
 
 ### Querying version of knownfolder
