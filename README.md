@@ -48,7 +48,7 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
 
 ```
 C:\>knownfolder set RoamingAppData "D:\Users\Pete\AppData\Roaming"
-RoamingAppData="D:\\Users\\Pete\\AppData\\Roaming"
+RoamingAppData=D:\Users\Pete\AppData\Roaming
 ```
 
 ### Retrieving folder location
