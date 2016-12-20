@@ -228,6 +228,25 @@ func SHGetKnownFolderPath(rfid *syscall.GUID, dwFlags uint32, hToken syscall.Han
 	return
 }
 
+// https://msdn.microsoft.com/en-us/library/windows/desktop/bb762249(v=vs.85).aspx
+func SHSetKnownFolderPath(
+	rfid *syscall.GUID, // REFKNOWNFOLDERID
+	dwFlags uint32, // DWORD
+	hToken syscall.Handle, // HANDLE
+	pszPath *uint16, // PCWSTR
+) (err error) {
+	r1, _, _ := procSHSetKnownFolderPath.Call(
+		uintptr(unsafe.Pointer(rfid)),
+		uintptr(dwFlags),
+		uintptr(hToken),
+		uintptr(unsafe.Pointer(pszPath)),
+	)
+	if r1 != 0 {
+		err = syscall.Errno(r1)
+	}
+	return
+}
+
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms680722(v=vs.85).aspx
 func CoTaskMemFree(pv uintptr) (err error) {
 	r0, _, _ := procCoTaskMemFree.Call(uintptr(pv))
@@ -246,7 +265,7 @@ func GetFolder(folder *syscall.GUID) (value string, err error) {
 	defer func() {
 		freeMemErr := CoTaskMemFree(path)
 		if freeMemErr != nil {
-			log.Fatalf("Could not free memory after system call")
+			log.Fatalf("Could not free memory after system call:\n%v", freeMemErr)
 		}
 	}()
 	value = syscall.UTF16ToString((*[1 << 16]uint16)(unsafe.Pointer(path))[:])
@@ -270,25 +289,6 @@ func ListFolders() (err error) {
 	sort.Strings(keys)
 	for _, key := range keys {
 		fmt.Println(key)
-	}
-	return
-}
-
-// https://msdn.microsoft.com/en-us/library/windows/desktop/bb762249(v=vs.85).aspx
-func SHSetKnownFolderPath(
-	rfid *syscall.GUID, // REFKNOWNFOLDERID
-	dwFlags uint32, // DWORD
-	hToken syscall.Handle, // HANDLE
-	pszPath *uint16, // PCWSTR
-) (err error) {
-	r1, _, _ := procSHSetKnownFolderPath.Call(
-		uintptr(unsafe.Pointer(rfid)),
-		uintptr(dwFlags),
-		uintptr(hToken),
-		uintptr(unsafe.Pointer(pszPath)),
-	)
-	if r1 != 0 {
-		err = syscall.Errno(r1)
 	}
 	return
 }
