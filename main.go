@@ -10,6 +10,9 @@ import (
 	docopt "github.com/docopt/docopt-go"
 )
 
+// note, we need to use var not const to avoid compilation failure due to intended overflow
+var minusOne = -1
+
 // https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
 var (
 	knownfolders map[string]*syscall.GUID = map[string]*syscall.GUID{
@@ -145,20 +148,22 @@ knownfolder allows you to get and set known folder locations on Windows.
 See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
 
   Usage:
-    knownfolder set FOLDER LOCATION
-    knownfolder get FOLDER
+    knownfolder set [-d] FOLDER LOCATION
+    knownfolder get [-d] FOLDER
     knownfolder list
     knownfolder -h|--help
     knownfolder --version
 
   Targets:
     set          Set a folder location. You need to run this command as the user concerned, for
-                 USER based settings.
+                 USER based settings, otherwise -d will apply the setting for the default user.
     get          Retrieve a folder location. You need to run this command as the user concerned,
-                 for USER based settings.
+                 for USER based settings, otherwise -d will apply the setting for the default user.
     list         List all possible values for FOLDER.
 
   Options:
+    -d           Set/get known folder for the default user, rather than the user running the
+                 process.
     FOLDER       The folder name, as per the Constants shown in
                  https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
     LOCATION     The full file system path to set the given FOLDER location to.
@@ -191,7 +196,7 @@ func main() {
 			log.Fatalf(`Unknown folder "%v"`, folder)
 		}
 		location := arguments["LOCATION"].(string)
-		err := SetFolder(knownfolders[folder], location)
+		err := SetFolder(knownfolders[folder], location, arguments["-d"].(bool))
 		if err != nil {
 			log.Fatalf("Could not set folder location %v=%v\n%v", folder, location, err)
 		}
@@ -201,7 +206,7 @@ func main() {
 		if knownfolders[folder] == nil {
 			log.Fatalf(`Unknown folder "%v"`, folder)
 		}
-		value, err := GetFolder(knownfolders[folder])
+		value, err := GetFolder(knownfolders[folder], arguments["-d"].(bool))
 		if err != nil {
 			log.Fatalf("Could not retrieve folder %v:\n%v", folder, err)
 		}
@@ -253,9 +258,15 @@ func CoTaskMemFree(pv uintptr) {
 	procCoTaskMemFree.Call(uintptr(pv))
 }
 
-func GetFolder(folder *syscall.GUID) (value string, err error) {
+func GetFolder(folder *syscall.GUID, defaultUser bool) (value string, err error) {
 	var path uintptr
-	err = SHGetKnownFolderPath(folder, 0, 0, &path)
+	if defaultUser {
+		// intentionally overflow minusOne to uintptr 0xFFFF.... here
+		err = SHGetKnownFolderPath(folder, 0, syscall.Handle(minusOne), &path)
+	} else {
+		err = SHGetKnownFolderPath(folder, 0, 0, &path)
+	}
+
 	if err != nil {
 		return
 	}
@@ -265,13 +276,18 @@ func GetFolder(folder *syscall.GUID) (value string, err error) {
 	return
 }
 
-func SetFolder(folder *syscall.GUID, value string) (err error) {
+func SetFolder(folder *syscall.GUID, value string, defaultUser bool) (err error) {
 	var s *uint16
 	s, err = syscall.UTF16PtrFromString(value)
 	if err != nil {
 		return
 	}
-	return SHSetKnownFolderPath(folder, 0, 0, s)
+	if defaultUser {
+		// intentionally overflow minusOne to uintptr 0xFFFF.... here
+		return SHSetKnownFolderPath(folder, 0, syscall.Handle(minusOne), s)
+	} else {
+		return SHSetKnownFolderPath(folder, 0, 0, s)
+	}
 }
 
 func ListFolders() (err error) {
