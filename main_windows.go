@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"runtime"
 	"sort"
 	"syscall"
 	"unsafe"
@@ -138,6 +140,34 @@ var (
 	}
 )
 
+type ProfileInfo struct {
+	Size        uint32
+	Flags       uint32
+	Username    *uint16
+	ProfilePath *uint16
+	DefaultPath *uint16
+	ServerName  *uint16
+	PolicyPath  *uint16
+	Profile     syscall.Handle
+}
+
+const (
+	PI_NOUI = 1
+
+	LOGON32_PROVIDER_DEFAULT = 0
+	LOGON32_PROVIDER_WINNT35 = 1
+	LOGON32_PROVIDER_WINNT40 = 2
+	LOGON32_PROVIDER_WINNT50 = 3
+
+	LOGON32_LOGON_INTERACTIVE       = 2
+	LOGON32_LOGON_NETWORK           = 3
+	LOGON32_LOGON_BATCH             = 4
+	LOGON32_LOGON_SERVICE           = 5
+	LOGON32_LOGON_UNLOCK            = 7
+	LOGON32_LOGON_NETWORK_CLEARTEXT = 8
+	LOGON32_LOGON_NEW_CREDENTIALS   = 9
+)
+
 var (
 	version = "1.0.0"
 	usage   = `
@@ -148,8 +178,8 @@ knownfolder allows you to get and set known folder locations on Windows.
 See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
 
   Usage:
-    knownfolder set [-d] FOLDER LOCATION
-    knownfolder get [-d] FOLDER
+    knownfolder set [-d|[-u USERNAME -p PASSWORD]] FOLDER LOCATION
+    knownfolder get [-d|[-u USERNAME -p PASSWORD]] FOLDER
     knownfolder list
     knownfolder -h|--help
     knownfolder --version
@@ -162,11 +192,14 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
     list         List all possible values for FOLDER.
 
   Options:
-    -d           Set/get known folder for the default user, rather than the user running the
-                 process.
+    -d           Set/get known folder for the default user profile, rather than an existing user.
     FOLDER       The folder name, as per the Constants shown in
                  https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
     LOCATION     The full file system path to set the given FOLDER location to.
+    USERNAME     The username of the user you wish to set/get the known folder for, if different
+                 to the user running the knownfolder command.
+    PASSWORD     The password of the user you wish to set/get the known folder for, if different
+                 to the user running the knownfolder command.
 
   Examples:
 
@@ -176,11 +209,16 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
     C:\> knownfolder --help
     C:\> knownfolder --version
 `
+	advapi32                 = syscall.NewLazyDLL("advapi32.dll")
 	shell32                  = syscall.NewLazyDLL("shell32.dll")
 	ole32                    = syscall.NewLazyDLL("ole32.dll")
+	userenv                  = syscall.NewLazyDLL("userenv.dll")
 	procSHGetKnownFolderPath = shell32.NewProc("SHGetKnownFolderPath")
 	procCoTaskMemFree        = ole32.NewProc("CoTaskMemFree")
 	procSHSetKnownFolderPath = shell32.NewProc("SHSetKnownFolderPath")
+	procLoadUserProfileW     = userenv.NewProc("LoadUserProfileW")
+	procLogonUserW           = advapi32.NewProc("LogonUserW")
+	procUnloadUserProfile    = userenv.NewProc("UnloadUserProfile")
 )
 
 func main() {
@@ -191,12 +229,21 @@ func main() {
 
 	switch {
 	case arguments["set"]:
+		location := arguments["LOCATION"].(string)
 		folder := arguments["FOLDER"].(string)
 		if knownfolders[folder] == nil {
 			log.Fatalf(`Unknown folder "%v"`, folder)
 		}
-		location := arguments["LOCATION"].(string)
-		err := SetFolder(knownfolders[folder], location, arguments["-d"].(bool))
+		hUser := syscall.Handle(0)
+		if arguments["-d"].(bool) {
+			// intentionally overflow minusOne to uintptr 0xFFFF.... here
+			hUser = syscall.Handle(minusOne)
+		} else if u := arguments["-u"].(string); u != "" {
+			var profileInfo *ProfileInfo
+			hUser, profileInfo = InteractiveLogonUser(u, arguments["-p"].(string))
+			defer LogoffUser(hUser, profileInfo)
+		}
+		err := SetFolder(hUser, knownfolders[folder], location)
 		if err != nil {
 			log.Fatalf("Could not set folder location %v=%v\n%v", folder, location, err)
 		}
@@ -206,7 +253,16 @@ func main() {
 		if knownfolders[folder] == nil {
 			log.Fatalf(`Unknown folder "%v"`, folder)
 		}
-		value, err := GetFolder(knownfolders[folder], arguments["-d"].(bool))
+		hUser := syscall.Handle(0)
+		if arguments["-d"].(bool) {
+			// intentionally overflow minusOne to uintptr 0xFFFF.... here
+			hUser = syscall.Handle(minusOne)
+		} else if u := arguments["-u"].(string); u != "" {
+			var profileInfo *ProfileInfo
+			hUser, profileInfo = InteractiveLogonUser(u, arguments["-p"].(string))
+			defer LogoffUser(hUser, profileInfo)
+		}
+		value, err := GetFolder(hUser, knownfolders[folder])
 		if err != nil {
 			log.Fatalf("Could not retrieve folder %v:\n%v", folder, err)
 		}
@@ -258,14 +314,9 @@ func CoTaskMemFree(pv uintptr) {
 	procCoTaskMemFree.Call(uintptr(pv))
 }
 
-func GetFolder(folder *syscall.GUID, defaultUser bool) (value string, err error) {
+func GetFolder(hUser syscall.Handle, folder *syscall.GUID) (value string, err error) {
 	var path uintptr
-	if defaultUser {
-		// intentionally overflow minusOne to uintptr 0xFFFF.... here
-		err = SHGetKnownFolderPath(folder, 0, syscall.Handle(minusOne), &path)
-	} else {
-		err = SHGetKnownFolderPath(folder, 0, 0, &path)
-	}
+	err = SHGetKnownFolderPath(folder, 0, hUser, &path)
 
 	if err != nil {
 		return
@@ -276,18 +327,13 @@ func GetFolder(folder *syscall.GUID, defaultUser bool) (value string, err error)
 	return
 }
 
-func SetFolder(folder *syscall.GUID, value string, defaultUser bool) (err error) {
+func SetFolder(hUser syscall.Handle, folder *syscall.GUID, value string) (err error) {
 	var s *uint16
 	s, err = syscall.UTF16PtrFromString(value)
 	if err != nil {
 		return
 	}
-	if defaultUser {
-		// intentionally overflow minusOne to uintptr 0xFFFF.... here
-		return SHSetKnownFolderPath(folder, 0, syscall.Handle(minusOne), s)
-	} else {
-		return SHSetKnownFolderPath(folder, 0, 0, s)
-	}
+	return SHSetKnownFolderPath(folder, 0, hUser, s)
 }
 
 func ListFolders() (err error) {
@@ -300,4 +346,91 @@ func ListFolders() (err error) {
 		fmt.Println(key)
 	}
 	return
+}
+
+func InteractiveLogonUser(username, password string) (user syscall.Handle, pinfo *ProfileInfo) {
+
+	name, err := syscall.UTF16PtrFromString(username)
+	if err != nil {
+		panic(err)
+	}
+
+	pinfo = &ProfileInfo{
+		Size:     uint32(unsafe.Sizeof(*pinfo)),
+		Flags:    PI_NOUI,
+		Username: name,
+	}
+
+	// first log on user ....
+
+	user, err = LogonUser(
+		syscall.StringToUTF16Ptr(username),
+		syscall.StringToUTF16Ptr("."),
+		syscall.StringToUTF16Ptr(password),
+		LOGON32_LOGON_INTERACTIVE,
+		LOGON32_PROVIDER_DEFAULT,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// now load user profile ....
+
+	err = LoadUserProfile(user, pinfo)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+func LogonUser(username *uint16, domain *uint16, password *uint16, logonType uint32, logonProvider uint32) (token syscall.Handle, err error) {
+	r1, _, e1 := procLogonUserW.Call(
+		uintptr(unsafe.Pointer(username)),
+		uintptr(unsafe.Pointer(domain)),
+		uintptr(unsafe.Pointer(password)),
+		uintptr(logonType),
+		uintptr(logonProvider),
+		uintptr(unsafe.Pointer(&token)))
+	runtime.KeepAlive(username)
+	runtime.KeepAlive(domain)
+	runtime.KeepAlive(password)
+	if int(r1) == 0 {
+		return syscall.InvalidHandle, os.NewSyscallError("LogonUser", e1)
+	}
+	return
+}
+
+func LogoffUser(user syscall.Handle, pinfo *ProfileInfo) {
+	defer syscall.Close(user)
+	defer func() {
+		if pinfo.Profile != syscall.Handle(0) && pinfo.Profile != syscall.InvalidHandle {
+			for {
+				err := UnloadUserProfile(user, pinfo.Profile)
+				if err == nil {
+					break
+				}
+				log.Printf("%v", err)
+			}
+		}
+	}()
+}
+
+func LoadUserProfile(token syscall.Handle, pinfo *ProfileInfo) error {
+	r1, _, e1 := procLoadUserProfileW.Call(
+		uintptr(token),
+		uintptr(unsafe.Pointer(pinfo)))
+	runtime.KeepAlive(pinfo)
+	if int(r1) == 0 {
+		return os.NewSyscallError("LoadUserProfile", e1)
+	}
+	return nil
+}
+
+func UnloadUserProfile(token, profile syscall.Handle) error {
+	if r1, _, e1 := procUnloadUserProfile.Call(
+		uintptr(token),
+		uintptr(profile)); int(r1) == 0 {
+		return os.NewSyscallError("UnloadUserProfile", e1)
+	}
+	return nil
 }
