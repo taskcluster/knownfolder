@@ -371,7 +371,7 @@ func InteractiveLogonUser(username, password string) (user syscall.Handle, pinfo
 		LOGON32_PROVIDER_DEFAULT,
 	)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%v", err)
 	}
 
 	// now load user profile ....
