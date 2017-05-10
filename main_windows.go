@@ -178,8 +178,8 @@ knownfolder allows you to get and set known folder locations on Windows.
 See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
 
   Usage:
-    knownfolder set [-d|[-u USERNAME -p PASSWORD]] FOLDER LOCATION
-    knownfolder get [-d|[-u USERNAME -p PASSWORD]] FOLDER
+    knownfolder set [-d|-u USERNAME -p PASSWORD] FOLDER LOCATION
+    knownfolder get [-d|-u USERNAME -p PASSWORD] FOLDER
     knownfolder list
     knownfolder -h|--help
     knownfolder --version
