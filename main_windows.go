@@ -238,7 +238,7 @@ func main() {
 		if arguments["-d"].(bool) {
 			// intentionally overflow minusOne to uintptr 0xFFFF.... here
 			hUser = syscall.Handle(minusOne)
-		} else if arguments["USERNAME"].(bool) {
+		} else if arguments["-u"].(bool) {
 			var profileInfo *ProfileInfo
 			hUser, profileInfo = InteractiveLogonUser(arguments["USERNAME"].(string), arguments["PASSWORD"].(string))
 			defer LogoffUser(hUser, profileInfo)
