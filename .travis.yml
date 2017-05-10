@@ -1,0 +1,36 @@
+language: go
+
+env:
+  - "MY_GOOS=windows MY_GOARCH=amd64"
+  - "MY_GOOS=windows MY_GOARCH=386"
+
+script:
+  - "export GOOS=${MY_GOOS}"
+  - "export GOARCH=${MY_GOARCH}"
+  - "go get -v ./..."
+
+before_deploy:
+  - "source .travis_rename_releases.sh"
+
+deploy:
+  api_key:
+    secure: E9MROT8IpxHFZeHpgQru6rxr/JQ3Z4SBX6AoIySBZB3nLMJiYa5/GZCS1+87IaKnl6V281ypHn6fEGc9JfPXvm4aVglanfivoZzASRC82Ww3dVf3nD7L3WKYoetWWrRn2HbfVdbxv7j3KDq7VQuq9idbynuf0rsGAqRBvgRX1MndFUSZ5k4gFzmWorNhOMQFyCRTV6n7RM3w4iDK78q/+rryLvlVEMPRSW9n2ofUSVxfperlGplxMbjbCgn7hiZTr6pRddj5rkRuKHZlUz0Edin8b0bxQqOWgALo7S8QlVSuxIsNiJz4vkFylFlbJoc2t8jZkRZhXRfsS0BYR6/ERFekUm789kAbXjQ0mm9SWLOdhJWjjsXcpnzHdXy+XEwes7cZ0KqEgwnE3Fo2PR2HGm6yJu3WYYPkkDAdnVmxu9jjj3GUGfSdmXrnTZLnyRslMMl5F7zSIQhj6oFfXhIPYKBh3Nk0wKZlWV1CrWQGH7aFATgC7zYx1PWzeMMXeXJFOPTE2kLtTHBQvIhokW6GcfQlf2cQmVW4iLr4tDwYVFf+1rgz7+aLntYkKbbxz9+6eAyVJyUXbKK0efDWxnsI6ZdHkKKy7kawgh2hfsBTE8joEwC/kEGkbzqcx2++tKmw3Wa8unYrW47HInAQ8/cVhfSwXd3jLnZT5T1sagb4l5Q=
+  file:
+    - "${RELEASE_FILE}"
+  provider: releases
+  skip_cleanup: true
+  on:
+    repo: taskcluster/knownfolder
+    tags: true
+
+notifications:
+  irc:
+    channels:
+      - "irc.mozilla.org#taskcluster-bots"
+    on_failure: always
+    on_success: change
+    template:
+      - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
+      - "Change view : %{compare_url}"
+      - "Build details : %{build_url}"
+      - "Commit message : %{commit_message}"

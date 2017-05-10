@@ -1,5 +1,8 @@
 # knownfolder
 
+[![Build Status](https://img.shields.io/travis/taskcluster/knownfolder.svg?style=flat-square&label=build)](https://travis-ci.org/taskcluster/knownfolder)
+[![License](https://img.shields.io/badge/license-MPL%202.0-orange.svg)](http://mozilla.org/MPL/2.0)
+
 This is a command line utility for getting/setting known folders on windows.
 
 See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx for more info.
