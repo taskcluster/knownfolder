@@ -238,9 +238,9 @@ func main() {
 		if arguments["-d"].(bool) {
 			// intentionally overflow minusOne to uintptr 0xFFFF.... here
 			hUser = syscall.Handle(minusOne)
-		} else if u := arguments["USERNAME"].(string); u != "" {
+		} else if arguments["USERNAME"].(bool) {
 			var profileInfo *ProfileInfo
-			hUser, profileInfo = InteractiveLogonUser(u, arguments["PASSWORD"].(string))
+			hUser, profileInfo = InteractiveLogonUser(arguments["USERNAME"].(string), arguments["PASSWORD"].(string))
 			defer LogoffUser(hUser, profileInfo)
 		}
 		err := SetFolder(hUser, knownfolders[folder], location)
@@ -257,9 +257,9 @@ func main() {
 		if arguments["-d"].(bool) {
 			// intentionally overflow minusOne to uintptr 0xFFFF.... here
 			hUser = syscall.Handle(minusOne)
-		} else if u := arguments["USERNAME"].(string); u != "" {
+		} else if arguments["-u"].(bool) {
 			var profileInfo *ProfileInfo
-			hUser, profileInfo = InteractiveLogonUser(u, arguments["PASSWORD"].(string))
+			hUser, profileInfo = InteractiveLogonUser(arguments["USERNAME"].(string), arguments["PASSWORD"].(string))
 			defer LogoffUser(hUser, profileInfo)
 		}
 		value, err := GetFolder(hUser, knownfolders[folder])
