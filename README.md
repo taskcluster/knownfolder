@@ -20,23 +20,28 @@ knownfolder allows you to get and set known folder locations on Windows.
 See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
 
   Usage:
-    knownfolder set FOLDER LOCATION
-    knownfolder get FOLDER
+    knownfolder set [-d|-u USERNAME -p PASSWORD] FOLDER LOCATION
+    knownfolder get [-d|-u USERNAME -p PASSWORD] FOLDER
     knownfolder list
     knownfolder -h|--help
     knownfolder --version
 
   Targets:
     set          Set a folder location. You need to run this command as the user concerned, for
-                 USER based settings.
+                 USER based settings, otherwise -d will apply the setting for the default user.
     get          Retrieve a folder location. You need to run this command as the user concerned,
-                 for USER based settings.
+                 for USER based settings, otherwise -d will apply the setting for the default user.
     list         List all possible values for FOLDER.
 
   Options:
+    -d           Set/get known folder for the default user profile, rather than an existing user.
     FOLDER       The folder name, as per the Constants shown in
                  https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
     LOCATION     The full file system path to set the given FOLDER location to.
+    USERNAME     The username of the user you wish to set/get the known folder for, if different
+                 to the user running the knownfolder command.
+    PASSWORD     The password of the user you wish to set/get the known folder for, if different
+                 to the user running the knownfolder command.
 
   Examples:
 
@@ -45,20 +50,21 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).a
     C:\> knownfolder get LocalAppData
     C:\> knownfolder --help
     C:\> knownfolder --version
+
 ```
 
 ### Setting folder location
 
 ```
-C:\>knownfolder set RoamingAppData "D:\Users\Pete\AppData\Roaming"
-RoamingAppData=D:\Users\Pete\AppData\Roaming
+C:\>knownfolder set -u fred -p fredspassword RoamingAppData "D:\fred\AppData\Roaming"
+RoamingAppData=D:\fred\AppData\Roaming
 ```
 
 ### Retrieving folder location
 
 ```
 C:\>knownfolder get LocalAppData
-C:\Tasks\Stuff\AppData\Local
+C:\Fun\Stuff\AppData\Local
 
 ```
 
