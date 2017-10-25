@@ -1,12 +1,12 @@
 language: go
+go:
+  - 1.9
 
 env:
-  - "MY_GOOS=windows MY_GOARCH=amd64"
-  - "MY_GOOS=windows MY_GOARCH=386"
+  - "GIMME_OS=windows GIMME_ARCH=amd64"
+  - "GIMME_OS=windows GIMME_ARCH=386"
 
 script:
-  - "export GOOS=${MY_GOOS}"
-  - "export GOARCH=${MY_GOARCH}"
   - "go get -v ./..."
 
 before_deploy:
